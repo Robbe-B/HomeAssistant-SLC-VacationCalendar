@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .CalendarApi import CalendarException, CalendarHelper
-from .const import CONF_ELEMENT_ID, CONF_FULLNAME, DOMAIN
+from .const import CONF_ELEMENT_ID, CONF_FULLNAME, DOMAIN, SERVICE_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # InvalidAuth
 
     # Return info that you want to store in the config entry.
-    return {"title": "SLC Vacation Calendar"}
+    return {"title": SERVICE_NAME}
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -84,14 +84,6 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
 
             if "base" not in errors:
-                # Validation was successful, so create a unique id for this instance of your integration
-                # and create the config entry.
-                # await self.async_set_unique_id("SLC Vacation Calendar")
-                # self._abort_if_unique_id_configured()
-                # return self.async_create_entry(
-                #     title="SLC Vacation Calendar", data=user_input
-                # )
-
                 # Validation was successful, so proceed to the next step.
 
                 # ----------------------------------------------------------------------------
@@ -141,7 +133,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 # ----------------------------------------------------------------------------
                 # Validation was successful, so create the config entry.
                 # ----------------------------------------------------------------------------
-                self._title = f"SLC Vacation Calendar - {user_input[CONF_FULLNAME]}"
+                self._title = f"{SERVICE_NAME} - {user_input[CONF_FULLNAME]}"
                 await self.async_set_unique_id(self._title)
                 self._abort_if_unique_id_configured()
 

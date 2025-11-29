@@ -6,12 +6,12 @@ import logging
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .CalendarApi import CalendarEntry, CalendarEntryType
-from .const import DOMAIN
+from .const import DOMAIN, DOMAIN_METRICS_URL, SERVICE_NAME, MANUFACTURER_NAME, MODEL_NAME
 from .coordinator import CalendarCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -101,16 +101,17 @@ class WorkDayBinarySensor(CoordinatorEntity, BinarySensorEntity):
         # If your device is created elsewhere, you can just specify the indentifiers parameter.
         # If your device connects via another device, add via_device parameter with the indentifiers of that device.
         return DeviceInfo(
-            name=f"Workday Binary Sensor {self.coordinator.fullname}",
-            manufacturer="DhrMaes",
-            model="Workday Binary Sensor 1.0.1",
-            sw_version="1.0.1",
+            entry_type=DeviceEntryType.SERVICE,
+            name=SERVICE_NAME,
+            manufacturer=MANUFACTURER_NAME,
+            model=MODEL_NAME,
             identifiers={
                 (
                     DOMAIN,
                     f"slc-vaction-calendar-{self.coordinator.fullname}",
                 )
             },
+            configuration_url=DOMAIN_METRICS_URL,
         )
 
     @property
