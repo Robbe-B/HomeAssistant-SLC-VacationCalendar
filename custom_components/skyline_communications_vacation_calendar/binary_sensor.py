@@ -1,4 +1,4 @@
-"""Interfaces with the Integration 101 Template api sensors."""
+"""Skyline Communications Vacation Calendar."""
 
 from datetime import datetime
 import logging
@@ -11,7 +11,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .CalendarApi import CalendarEntry, CalendarEntryType
-from .const import DOMAIN, DOMAIN_METRICS_URL, SERVICE_NAME, MANUFACTURER_NAME, MODEL_NAME
+from .const import (
+    DOMAIN,
+    DOMAIN_METRICS_URL,
+    MANUFACTURER_NAME,
+    MODEL_NAME,
+    SERVICE_NAME,
+)
 from .coordinator import CalendarCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,19 +29,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ):
     """Set up the Binary Sensors."""
-    # This gets the data update coordinator from hass.data as specified in your __init__.py
-    coordinator: CalendarCoordinator = hass.data[DOMAIN][
-        config_entry.entry_id
-    ].coordinator
-
-    # Enumerate all the binary sensors in your data value from your DataUpdateCoordinator and add an instance of your binary sensor class
-    # to a list for each one.
-    # This maybe different in your specific case, depending on how your data is structured
-    # binary_sensors = [
-    #    ExampleBinarySensor(coordinator, device)
-    #    for device in coordinator.data.devices
-    #    if device.device_type == DeviceType.DOOR_SENSOR
-    # ]
+    coordinator: CalendarCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     binary_sensors = [WorkDayBinarySensor(coordinator, coordinator.entries)]
 
@@ -73,7 +67,7 @@ class WorkDayBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Calculate if today is a work day or not."""
 
         # This needs to enumerate to true or false
-        now = datetime.now()
+        now = datetime.now().astimezone()
 
         matching_entries = [
             entry
