@@ -10,7 +10,6 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .CalendarApi import CalendarEntry, CalendarEntryType
 from .const import (
     DOMAIN,
     DOMAIN_METRICS_URL,
@@ -19,6 +18,7 @@ from .const import (
     SERVICE_NAME,
 )
 from .coordinator import CalendarCoordinator
+from .skyline.calendar_api import CalendarEntry, CalendarEntryType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +45,7 @@ class WorkDayBinarySensor(CoordinatorEntity, BinarySensorEntity):
         CalendarEntryType.Public_Holiday,
         CalendarEntryType.Weekend,
     ]
+    coordinator: CalendarCoordinator
 
     def __init__(
         self, coordinator: CalendarCoordinator, entries: list[CalendarEntry]
@@ -56,11 +57,8 @@ class WorkDayBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        # This method is called by your DataUpdateCoordinator when a successful update runs.
-
-        coordinator: CalendarCoordinator = self.coordinator
         _LOGGER.debug("User: %s", self.coordinator.fullname)
-        self.calculate_workday(coordinator.entries)
+        self.calculate_workday(self.coordinator.entries)
         self.async_write_ha_state()
 
     def calculate_workday(self, entries: list[CalendarEntry]):

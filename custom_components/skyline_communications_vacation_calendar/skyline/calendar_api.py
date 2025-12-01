@@ -1,13 +1,14 @@
 from dataclasses import dataclass  # noqa: D100
 from datetime import datetime
 from enum import Enum
+from zoneinfo import ZoneInfo
 
 import requests
-import requests.packages
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN_METRICS_URL
+from ..const import DOMAIN_METRICS_URL
 
 
 class CalendarEntryType(Enum):
@@ -81,15 +82,19 @@ class CalendarHelper:
                 id=temp["ID"],
                 name=temp["Name"],
                 category=CalendarEntryType(temp["Category"]),
-                event_date=datetime.strptime(temp["EventDate"], "%Y-%m-%dT%H:%M:%S"),
-                end_date=datetime.strptime(temp["EndDate"], "%Y-%m-%dT%H:%M:%S"),
+                event_date=datetime.strptime(
+                    temp["EventDate"], "%Y-%m-%dT%H:%M:%S"
+                ).replace(tzinfo=dt_util.get_default_time_zone()),
+                end_date=datetime.strptime(
+                    temp["EndDate"], "%Y-%m-%dT%H:%M:%S"
+                ).replace(tzinfo=dt_util.get_default_time_zone()),
                 description=temp["Description"],
                 original_event_date=datetime.strptime(
                     temp["OriginalEventDate"], "%Y-%m-%dT%H:%M:%S"
-                ),
+                ).replace(tzinfo=dt_util.get_default_time_zone()),
                 originale_end_date=datetime.strptime(
                     temp["OriginalEndDate"], "%Y-%m-%dT%H:%M:%S"
-                ),
+                ).replace(tzinfo=dt_util.get_default_time_zone()),
             )
             entries.append(entry)
 

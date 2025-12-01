@@ -1,6 +1,6 @@
 """Skyline Communications Vacation Calendar."""
 
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -9,7 +9,6 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .CalendarApi import CalendarEntry, CalendarEntryType
 from .const import (
     DOMAIN,
     DOMAIN_METRICS_URL,
@@ -18,6 +17,7 @@ from .const import (
     SERVICE_NAME,
 )
 from .coordinator import CalendarCoordinator
+from .skyline.calendar_api import CalendarEntry, CalendarEntryType
 
 
 async def async_setup_entry(
@@ -51,7 +51,7 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
         self._entries = self.coordinator.entries
-        self._event = self.get_next_upcoming_event(self._entries)
+        self._event = self.get_current_or_upcoming_event(self._entries)
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -62,7 +62,7 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         self._entries = self.coordinator.entries
-        self._event = self.get_next_upcoming_event(self._entries)
+        self._event = self.get_current_or_upcoming_event(self._entries)
         self.async_write_ha_state()
 
     async def async_get_events(
@@ -83,36 +83,95 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
 
         return event_list
 
-    def get_next_upcoming_event(
+    def get_current_or_upcoming_event(
         self, events: list[CalendarEntry]
     ) -> CalendarEvent | None:
-        """Return the calender entry with the closest future event_date, or None if none exist."""
+        """Return the current ongoing event if it exists, otherwise the next upcoming event. Return None if no relevant events exist."""
 
-        # Get current time with system timezone
+        # Current time with system timezone
         now = datetime.now().astimezone()
 
-        # Filter to events strictly in the future
-        future_events = [e for e in events if e.event_date > now]
+        current_event = None
+        future_events = []
 
-        if not future_events:
-            return None
+        for e in events:
+            if e.event_date <= now < e.end_date:
+                # Currently ongoing
+                current_event = e
+                break  # stop at first ongoing event
+            elif e.event_date > now:
+                # Future events
+                future_events.append(e)
 
-        # get the event with the smallest (earliest) event_date
-        return self.get_calendar_event_from_calender_entry(
-            min(future_events, key=lambda e: e.event_date)
-        )
+        if current_event:
+            return self.get_calendar_event_from_calender_entry(current_event)
+
+        if future_events:
+            # Next upcoming event
+            next_event = min(future_events, key=lambda e: e.event_date)
+            return self.get_calendar_event_from_calender_entry(next_event)
+
+        return None
 
     def get_calendar_event_from_calender_entry(
         self, calendarEntry: CalendarEntry
     ) -> CalendarEvent:
         """Converts a CalendarEntry to a CalendarEvent."""
-        return CalendarEvent(
-            uid=calendarEntry.id,
-            summary=calendarEntry.category.name,
-            start=calendarEntry.event_date,
-            end=calendarEntry.end_date,
-            description=calendarEntry.description,
+        return self.normalize_calendar_event(
+            CalendarEvent(
+                uid=calendarEntry.id,
+                summary=calendarEntry.category.name,
+                start=calendarEntry.event_date,
+                end=calendarEntry.end_date,
+                description=calendarEntry.description,
+            )
         )
+
+    def is_all_day_or_multi_day_calendar_event(self, event: CalendarEvent) -> bool:
+        """Detects single or multi day events that are 'all day long'."""
+        start = event.start
+        end = event.end
+
+        # ----- CASE 1: Native HA all-day event (uses date objects) -----
+        if (
+            isinstance(start, date)
+            and not isinstance(start, datetime)
+            and isinstance(end, date)
+            and not isinstance(end, datetime)
+        ):
+            return True
+
+        # ----- CASE 2: datetime base => 00:00 → 23:59 or 00:00 → 00:00  -----
+        if isinstance(start, datetime) and isinstance(end, datetime):
+            # Normalize seconds
+            start = start.replace(second=0)
+            end = end.replace(second=0)
+
+            midnight = time(0, 0, 0)
+            almost_midnight = time(23, 59, 0)
+
+            if (start.time() == midnight and end.time() == almost_midnight) or (
+                start.time() == midnight
+                and end.time() == midnight
+                and start.date() != end.date()
+            ):
+                return True
+
+        return False
+
+    def normalize_calendar_event(self, event: CalendarEvent) -> CalendarEvent:
+        """Return a new Home Assistant–normalized CalendarEvent."""
+        if self.is_all_day_or_multi_day_calendar_event(event):
+            # Convert start to date if datetime
+            if isinstance(event.start, datetime):
+                event.start = event.start.date()
+            # Convert end to date if datetime
+            if isinstance(event.end, datetime):
+                event.end = event.end.date()
+
+            # HA: end is *exclusive*, so always +1 day
+            event.end = event.end + timedelta(days=1)
+        return event
 
     @property
     def device_info(self) -> DeviceInfo:

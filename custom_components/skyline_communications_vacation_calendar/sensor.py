@@ -14,7 +14,6 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .CalendarApi import CalendarEntry, CalendarEntryType
 from .const import (
     DOMAIN,
     DOMAIN_METRICS_URL,
@@ -23,6 +22,7 @@ from .const import (
     SERVICE_NAME,
 )
 from .coordinator import CalendarCoordinator
+from .skyline.calendar_api import CalendarEntry, CalendarEntryType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,6 +62,7 @@ class DaySensor(CoordinatorEntity, SensorEntity):
     _attr_native_unit_of_measurement = None
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_state_class = SensorStateClass.MEASUREMENT
+    coordinator: CalendarCoordinator
 
     def __init__(
         self, coordinator: CalendarCoordinator, entries: list[CalendarEntry]
@@ -75,9 +76,8 @@ class DaySensor(CoordinatorEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
         # This method is called by your DataUpdateCoordinator when a successful update runs.
-        coordinator: CalendarCoordinator = self.coordinator
-        _LOGGER.debug("User: %s", coordinator.fullname)
-        self.calculate_day_type(coordinator.entries)
+        _LOGGER.debug("User: %s", self.coordinator.fullname)
+        self.calculate_day_type(self.coordinator.entries)
         self.async_write_ha_state()
 
     def calculate_day_type(self, entries: list[CalendarEntry]):
