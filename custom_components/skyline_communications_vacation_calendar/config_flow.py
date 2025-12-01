@@ -12,8 +12,8 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from .CalendarApi import CalendarException, CalendarHelper
 from .const import CONF_ELEMENT_ID, CONF_FULLNAME, DOMAIN, SERVICE_NAME
+from .skyline.calendar_api import CalendarException, CalendarHelper
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,28 +37,14 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
 
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
-    # )
-
     api = CalendarHelper(data[CONF_API_KEY])
     await api.authenticate_async(hass)
-
-    # if not await api.authenticate():
-    #     raise InvalidAuth
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
 
     # Return info that you want to store in the config entry.
     return {"title": SERVICE_NAME}
 
 
-class ConfigFlow(ConfigFlow, domain=DOMAIN):
+class SLCVacationCalendarConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Skyline Communications Vacation Calendar."""
 
     VERSION = 1

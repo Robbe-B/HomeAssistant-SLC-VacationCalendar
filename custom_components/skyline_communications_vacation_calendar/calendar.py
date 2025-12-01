@@ -117,10 +117,13 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
         self, calendarEntry: CalendarEntry
     ) -> CalendarEvent:
         """Converts a CalendarEntry to a CalendarEvent."""
+        summary = calendarEntry.category.name
+        if calendarEntry.category == CalendarEntryType.Public_Holiday:
+            summary = f"Holiday - {calendarEntry.description}"
         return self.normalize_calendar_event(
             CalendarEvent(
                 uid=calendarEntry.id,
-                summary=calendarEntry.category.name,
+                summary=summary,
                 start=calendarEntry.event_date,
                 end=calendarEntry.end_date,
                 description=calendarEntry.description,
