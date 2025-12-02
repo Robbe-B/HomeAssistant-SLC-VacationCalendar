@@ -218,6 +218,7 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
             name=SERVICE_NAME,
             manufacturer=MANUFACTURER_NAME,
             model=MODEL_NAME,
+            sw_version=None,
             identifiers={
                 (
                     DOMAIN,

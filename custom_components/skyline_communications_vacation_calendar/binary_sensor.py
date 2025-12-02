@@ -89,14 +89,12 @@ class WorkDayBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
-        # Identifiers are what group entities into the same device.
-        # If your device is created elsewhere, you can just specify the indentifiers parameter.
-        # If your device connects via another device, add via_device parameter with the indentifiers of that device.
         return DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
             name=SERVICE_NAME,
             manufacturer=MANUFACTURER_NAME,
             model=MODEL_NAME,
+            sw_version=None,
             identifiers={
                 (
                     DOMAIN,
