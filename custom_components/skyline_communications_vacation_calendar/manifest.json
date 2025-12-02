@@ -7,7 +7,7 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://www.home-assistant.io/integrations/HomeAssistant-SLC-VacationCalendar",
+  "documentation": "https://github.com/DhrMaes/HomeAssistant-SLC-VacationCalendar",
   "homekit": {},
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/DhrMaes/HomeAssistant-SLC-VacationCalendar/issues",
