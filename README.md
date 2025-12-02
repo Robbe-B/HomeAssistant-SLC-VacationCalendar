@@ -41,7 +41,7 @@ Home Assistant Integration to sync your Skyline Communications Vacation Calendar
 
 ## Usage
 
-The following enteties will be created: 
+The following entities will be created: 
 - Binary sensor: indicating of today is a workday for the user or not. You could then the sensor in automations, for instance heat the car when my alarm goes of on a workday.
 
   ![Workday_Binary_Sensor Example](./Documentation/Images/Workday_Binary_Sensor_Example.png)
@@ -53,8 +53,9 @@ The following enteties will be created:
   ![Calendar Example_1](./Documentation/Images/Calendar_Example_1.png)
   ![Calendar Example_2](./Documentation/Images/Calendar_Example_2.png)
 
-
-
+### Options
+There are a couple of options avaiable on this integrations on how you would like to configure your calendars:
+ ![Options Example](./Documentation/Images/Options_Example.png)
 ### Automation 
 
 For example you could create an automation that will warm up your car when your alarm goes off in the morning but only if it's a working day and it's not a work from home day.
