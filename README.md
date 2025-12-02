@@ -1,5 +1,6 @@
 # Home Assistant Skyline Vacation Calendar Integration
 
+<img src="./Documentation/Logo/logo.png" width="128" height="128"> 
 Home Assistant Integration to sync your Skyline Communications Vacation Calendar with your HA. 
 
 ## Installation
