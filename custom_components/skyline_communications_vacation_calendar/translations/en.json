@@ -3,26 +3,18 @@
     "step": {
       "user": {
         "data": {
-          "api_key": "[%key:common::config_flow::data::api_key%]",
+          "api_key": "API Key",
           "full_name": "Full name",
           "element_id": "Element ID"
         }
       },
       "reconfigure": {
         "data": {
-          "api_key": "[%key:common::config_flow::data::api_key%]",
+          "api_key": "API Key",
           "full_name": "Full name",
           "element_id": "Element ID"
         }
       }
-    },
-    "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
-    },
-    "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
   "options": {
