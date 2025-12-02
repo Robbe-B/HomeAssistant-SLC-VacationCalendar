@@ -1,7 +1,6 @@
 from dataclasses import dataclass  # noqa: D100
 from datetime import datetime
 from enum import Enum
-from zoneinfo import ZoneInfo
 
 import requests
 
@@ -23,6 +22,44 @@ class CalendarEntryType(Enum):
     Weekend = 6
     Release = 7
     Seal = 8
+
+
+def to_calendar_entry_types(strings: list[str]) -> list[CalendarEntryType]:
+    """Converts a list of strings with enum values to a list of enum members."""
+    result = []
+    for s in strings:
+        try:
+            value = int(s)
+            result.append(CalendarEntryType(value))
+        except (ValueError, KeyError):
+            # ValueError → string not an integer
+            # KeyError → integer not a valid enum value
+            pass
+    return result
+
+
+@staticmethod
+def get_calendar_type_display_value(type: CalendarEntryType):
+    """Converts CalendarEntryType to a display string."""
+    match type:
+        case CalendarEntryType.Absent:
+            return "Absent"
+        case CalendarEntryType.WfH:
+            return "Work from Home"
+        case CalendarEntryType.RT_Rotation:
+            return "RT Rotation"
+        case CalendarEntryType.Support_Rotation:
+            return "Support Rotation"
+        case CalendarEntryType.Other:
+            return "Other"
+        case CalendarEntryType.Public_Holiday:
+            return "Public Holiday"
+        case CalendarEntryType.Weekend:
+            return "Weekend"
+        case CalendarEntryType.Release:
+            return "Release"
+        case CalendarEntryType.Seal:
+            return "Seal"
 
 
 @dataclass

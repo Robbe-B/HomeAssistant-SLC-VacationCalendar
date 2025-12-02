@@ -1,6 +1,6 @@
 """Skyline Communications Vacation Calendar."""
 
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.config_entries import ConfigEntry
@@ -9,7 +9,10 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .config_flow import default_calendar_entity_foreach_type, default_calendar_types
 from .const import (
+    CONF_OPTION_CALENDAR_ENTITY_FOREACH_TYPE,
+    CONF_OPTION_CALENDAR_TYPES,
     DOMAIN,
     DOMAIN_METRICS_URL,
     MANUFACTURER_NAME,
@@ -17,7 +20,12 @@ from .const import (
     SERVICE_NAME,
 )
 from .coordinator import CalendarCoordinator
-from .skyline.calendar_api import CalendarEntry, CalendarEntryType
+from .skyline.calendar_api import (
+    CalendarEntry,
+    CalendarEntryType,
+    get_calendar_type_display_value,
+    to_calendar_entry_types,
+)
 
 
 async def async_setup_entry(
@@ -27,31 +35,54 @@ async def async_setup_entry(
 ):
     """Set up the Skyline Communications Vacation Calendar entry."""
     coordinator: CalendarCoordinator = hass.data[DOMAIN][config_entry.entry_id]
-
-    async_add_entities(
-        [
-            SLCVacationCalendarEntity(
-                config_entry.title, config_entry.entry_id, coordinator
-            )
-        ]
+    calendar_entity_per_type: bool = config_entry.options.get(
+        CONF_OPTION_CALENDAR_ENTITY_FOREACH_TYPE, default_calendar_entity_foreach_type
     )
+    entities: list[SLCVacationCalendarEntity] = []
+    calendar_types: list[CalendarEntryType] = to_calendar_entry_types(
+        config_entry.options.get(CONF_OPTION_CALENDAR_TYPES, default_calendar_types)
+    )
+
+    if calendar_entity_per_type:
+        for calendar_type in calendar_types:
+            calendar_item_to_add = SLCVacationCalendarEntity(
+                f"{get_calendar_type_display_value(calendar_type)} Calendar",
+                f"{calendar_type}-{config_entry.entry_id}",
+                [calendar_type],
+                coordinator,
+            )
+            entities.append(calendar_item_to_add)
+    else:
+        calendar_item_to_add = SLCVacationCalendarEntity(
+            "Calendar", config_entry.entry_id, calendar_types, coordinator
+        )
+        entities.append(calendar_item_to_add)
+
+    async_add_entities(entities)
 
 
 class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
     """Representation of a Skyline Communications Calendar element."""
 
-    _attr_has_entity_name = True
-    _entries: list[CalendarEntry] | None = None
+    _attr_has_entity_name = False
+    _entries: list[CalendarEntry] = []
+    _calendar_types: list[CalendarEntryType] = []
     coordinator: CalendarCoordinator
 
     def __init__(
-        self, name: str, unique_id: str, coordinator: CalendarCoordinator
+        self,
+        name: str,
+        unique_id: str,
+        calendar_types: list[CalendarEntryType],
+        coordinator: CalendarCoordinator,
     ) -> None:
         """Initialize SLCVacationCalendarEntity."""
         super().__init__(coordinator)
+        self._attr_name = name
         self._attr_unique_id = unique_id
-        self._entries = self.coordinator.entries
-        self._event = self.get_current_or_upcoming_event(self._entries)
+        self._calendar_types = calendar_types
+        self._entries = self.get_filtered_entries_by_types()
+        self._event = self.get_current_or_upcoming_event()
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -61,8 +92,8 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Update sensor with latest data from coordinator."""
-        self._entries = self.coordinator.entries
-        self._event = self.get_current_or_upcoming_event(self._entries)
+        self._entries = self.get_filtered_entries_by_types()
+        self._event = self.get_current_or_upcoming_event()
         self.async_write_ha_state()
 
     async def async_get_events(
@@ -75,17 +106,20 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
 
         event_list: list[CalendarEvent] = []
 
-        if self._entries is not None:
-            for event in self._entries:
-                if start_date <= event.event_date <= end_date:
-                    event = self.get_calendar_event_from_calender_entry(event)
-                    event_list.append(event)
+        for event in self._entries:
+            if start_date <= event.event_date <= end_date:
+                event = self.get_calendar_event_from_calender_entry(event)
+                event_list.append(event)
 
         return event_list
 
-    def get_current_or_upcoming_event(
-        self, events: list[CalendarEntry]
-    ) -> CalendarEvent | None:
+    def get_filtered_entries_by_types(self) -> list[CalendarEntry]:
+        """Return only the entries from the correct CalendarEntryType defined in _calendar_types."""
+        return [
+            x for x in self.coordinator.entries if (x.category in self._calendar_types)
+        ]
+
+    def get_current_or_upcoming_event(self) -> CalendarEvent | None:
         """Return the current ongoing event if it exists, otherwise the next upcoming event. Return None if no relevant events exist."""
 
         # Current time with system timezone
@@ -94,7 +128,7 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
         current_event = None
         future_events = []
 
-        for e in events:
+        for e in self._entries:
             if e.event_date <= now < e.end_date:
                 # Currently ongoing
                 current_event = e

@@ -7,15 +7,67 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_API_KEY
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.selector import (
+    BooleanSelector,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
-from .const import CONF_ELEMENT_ID, CONF_FULLNAME, DOMAIN, SERVICE_NAME
-from .skyline.calendar_api import CalendarException, CalendarHelper
+from .const import (
+    CONF_ELEMENT_ID,
+    CONF_FULLNAME,
+    CONF_OPTION_CALENDAR_ENTITY_FOREACH_TYPE,
+    CONF_OPTION_CALENDAR_TYPES,
+    DOMAIN,
+    SERVICE_NAME,
+)
+from .skyline.calendar_api import (
+    CalendarEntryType,
+    CalendarException,
+    CalendarHelper,
+    get_calendar_type_display_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+possible_calendar_types = [
+    SelectOptionDict(
+        value=str(CalendarEntryType.Absent.value),
+        label=get_calendar_type_display_value(CalendarEntryType.Absent),
+    ),
+    SelectOptionDict(
+        value=str(CalendarEntryType.Public_Holiday.value),
+        label=get_calendar_type_display_value(CalendarEntryType.Public_Holiday),
+    ),
+    SelectOptionDict(
+        value=str(CalendarEntryType.WfH.value),
+        label=get_calendar_type_display_value(CalendarEntryType.WfH),
+    ),
+    SelectOptionDict(
+        value=str(CalendarEntryType.Weekend.value),
+        label=get_calendar_type_display_value(CalendarEntryType.Weekend),
+    ),
+]
+
+default_calendar_types = [
+    str(CalendarEntryType.Absent.value),
+    str(CalendarEntryType.Public_Holiday.value),
+    str(CalendarEntryType.WfH.value),
+]
+
+default_calendar_entity_foreach_type = True
+
 
 STEP_USER_AUTHENTICATION_SCHEME = vol.Schema(
     {
@@ -32,14 +84,9 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
-    """
-
+    """Validate the user input allows us to connect."""
     api = CalendarHelper(data[CONF_API_KEY])
     await api.authenticate_async(hass)
-
     # Return info that you want to store in the config entry.
     return {"title": SERVICE_NAME}
 
@@ -56,13 +103,12 @@ class SLCVacationCalendarConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step."""
+        """Handle a flow initialized by the user."""
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 api = CalendarHelper(user_input[CONF_API_KEY])
                 await api.authenticate_async(self.hass)
-                # info = await validate_input(self.hass, user_input)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except Exception:
@@ -185,6 +231,48 @@ class SLCVacationCalendarConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlowHandler:
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler()
+
+
+class OptionsFlowHandler(OptionsFlow):
+    """Handle a option flow for Skyline Communications Vacation Calendar."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle options flow."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_OPTION_CALENDAR_TYPES,
+                    default=self.config_entry.options.get(
+                        CONF_OPTION_CALENDAR_TYPES, default_calendar_types
+                    ),
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=possible_calendar_types,
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    CONF_OPTION_CALENDAR_ENTITY_FOREACH_TYPE,
+                    default=self.config_entry.options.get(
+                        CONF_OPTION_CALENDAR_ENTITY_FOREACH_TYPE,
+                        default_calendar_entity_foreach_type,
+                    ),
+                ): BooleanSelector(),
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=data_schema)
 
 
 class CannotConnect(HomeAssistantError):
