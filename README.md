@@ -48,7 +48,7 @@ The following enteties will be created:
 - Text sensor: indicating the current day as one of the following options: "Workday, WfH, Absence, Public_Holiday, Weekend"
 
   ![Workday Text_Sensor Example](./Documentation/Images/Workday_Text_Sensor_Example.png)
-- Calendar: a full blown calender with all skyline events
+- Calendar: a full blown calendar with all skyline events
 
   ![Calendar Example_1](./Documentation/Images/Calendar_Example_1.png)
   ![Calendar Example_2](./Documentation/Images/Calendar_Example_2.png)
