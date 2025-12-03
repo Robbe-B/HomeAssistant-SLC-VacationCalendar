@@ -25,7 +25,7 @@
           "calendar_entity_foreach_type": "Calendar entity per category"
         },
         "data_description": {
-          "calendar_types": "Calendar categories your want to show.",
+          "calendar_types": "Calendar categories you want to show.",
           "calendar_entity_foreach_type": "Whether you want to create a separate calendar entity for each category."
         },
         "title": "Calendar Configuration"
