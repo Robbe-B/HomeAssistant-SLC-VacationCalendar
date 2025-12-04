@@ -55,7 +55,7 @@ The following entities will be created:
   ![Calendar Example_2](./Documentation/Images/Calendar_Example_2.png)
 
 ### Options
-There are a couple of options avaiable on this integrations on how you would like to configure your calendars:
+There are a couple of options available on this integrations for how you would like to configure your calendars:
  ![Options Example](./Documentation/Images/Options_Example.png)
 ### Automation 
 
