@@ -46,7 +46,7 @@ async def async_setup_entry(
     if calendar_entity_per_type:
         for calendar_type in calendar_types:
             calendar_item_to_add = SLCVacationCalendarEntity(
-                f"{get_calendar_type_display_value(calendar_type)} Calendar",
+                f"{get_calendar_type_display_value(calendar_type)} Calendar - {coordinator.fullname}",
                 f"{calendar_type}-{config_entry.entry_id}",
                 [calendar_type],
                 coordinator,
@@ -54,7 +54,7 @@ async def async_setup_entry(
             entities.append(calendar_item_to_add)
     else:
         calendar_item_to_add = SLCVacationCalendarEntity(
-            "Calendar", config_entry.entry_id, calendar_types, coordinator
+            f"Calendar - {coordinator.fullname}", config_entry.entry_id, calendar_types, coordinator
         )
         entities.append(calendar_item_to_add)
 
@@ -151,16 +151,18 @@ class SLCVacationCalendarEntity(CoordinatorEntity, CalendarEntity):
         self, calendarEntry: CalendarEntry
     ) -> CalendarEvent:
         """Converts a CalendarEntry to a CalendarEvent."""
-        summary = calendarEntry.category.name
+        summary = f"{calendarEntry.category.name} - {calendarEntry.name}"
         if calendarEntry.category == CalendarEntryType.Public_Holiday:
             summary = f"Holiday - {calendarEntry.description}"
+        if calendarEntry.category == CalendarEntryType.Weekend:
+            summary = f"Weekend"
         return self.normalize_calendar_event(
             CalendarEvent(
                 uid=calendarEntry.id,
                 summary=summary,
                 start=calendarEntry.event_date,
                 end=calendarEntry.end_date,
-                description=calendarEntry.description,
+                description=f"{calendarEntry.description} - {calendarEntry.name}",
             )
         )
 
